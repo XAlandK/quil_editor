@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quill Editor with RTL/LTR HTML Code</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #editor { height: 300px; background: #fff; }
+    #viewer { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+    #tabs { display: flex; background: #f1f1f1; border-bottom: 1px solid #ccc; margin-bottom: 5px; }
+    #tabs button { flex: 1; padding: 10px; cursor: pointer; border: none; background: #f1f1f1; }
+    #tabs button.active { background: #fff; border-bottom: 2px solid #007bff; font-weight: bold; }
+    .tab-content { display: none; padding: 10px; min-height: 200px; background: #fafafa; overflow-y: auto; font-family: monospace; white-space: pre-wrap; }
+    .tab-content.active { display: block; }
+
+    #insert-image-btn { margin-top: 10px; padding: 5px 10px; }
+
+    #editor img { display: block; max-width: 100%; height: auto; margin: 10px auto; }
+  </style>
+</head>
+<body>
+  <h2>Quill Editor with HTML Code Output (RTL/LTR)</h2>
+
+  <!-- Toolbar -->
+  <div id="toolbar-container">
+    <span class="ql-formats">
+      <select class="ql-font"></select>
+      <select class="ql-size"></select>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-bold"></button>
+      <button class="ql-italic"></button>
+      <button class="ql-underline"></button>
+      <button class="ql-strike"></button>
+    </span>
+    <span class="ql-formats">
+      <select class="ql-color"></select>
+      <select class="ql-background"></select>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-script" value="sub"></button>
+      <button class="ql-script" value="super"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-header" value="1"></button>
+      <button class="ql-header" value="2"></button>
+      <button class="ql-blockquote"></button>
+      <button class="ql-code-block"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-list" value="ordered"></button>
+      <button class="ql-list" value="bullet"></button>
+      <button class="ql-indent" value="-1"></button>
+      <button class="ql-indent" value="+1"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-direction" value="rtl"></button>
+      <select class="ql-align"></select>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-link"></button>
+      <button class="ql-image"></button>
+      <button class="ql-video"></button>
+      <button class="ql-formula"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-clean"></button>
+    </span>
+  </div>
+
+  <!-- Editor -->
+  <div id="editor"></div>
+
+  <!-- Insert Image Button -->
+  <button id="insert-image-btn">Insert Image by URL</button>
+
+  <!-- Tabbed Viewer -->
+  <div id="viewer">
+    <div id="tabs">
+      <button id="delta-tab" class="active">Delta</button>
+      <button id="html-tab">HTML Code</button>
+    </div>
+    <div id="delta-view" class="tab-content active"></div>
+    <pre id="html-view" class="tab-content"></pre>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+  <script>
+    const quill = new Quill("#editor", {
+      modules: { toolbar: "#toolbar-container" },
+      placeholder: "Compose an epic...",
+      theme: "snow",
+    });
+
+    const deltaView = document.getElementById("delta-view");
+    const htmlView = document.getElementById("html-view");
+
+    function getCleanHTML() {
+      const clone = quill.root.cloneNode(true);
+      clone.querySelectorAll('[class]').forEach(el => el.removeAttribute('class'));
+
+      // Images: center & fit screen
+      clone.querySelectorAll('img').forEach(img => {
+        img.style.display = 'block';
+        img.style.margin = '10px auto';
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+      });
+
+      // Text direction: get direction from Quill format using block index
+      let children = Array.from(clone.childNodes);
+      let offset = 0;
+
+      children.forEach(block => {
+        if (block.nodeType !== Node.ELEMENT_NODE) return;
+        let length = block.innerText.length || 1;
+        let format = quill.getFormat(offset, 1); // get format at start of block
+        if (format.direction === 'rtl') block.setAttribute('dir', 'rtl');
+        else if (format.direction === 'ltr') block.setAttribute('dir', 'ltr');
+        offset += length + 1; // +1 for newline
+      });
+
+      return clone.innerHTML;
+    }
+
+    function update() {
+      deltaView.textContent = JSON.stringify(quill.getContents().ops, null, 2);
+      htmlView.textContent = getCleanHTML(); // raw HTML code with image & direction
+    }
+
+    quill.on(Quill.events.TEXT_CHANGE, update);
+    update();
+
+    document.getElementById("insert-image-btn").addEventListener("click", () => {
+      const url = prompt("Enter image URL:");
+      if (url) {
+        const range = quill.getSelection(true);
+        quill.insertEmbed(range.index, 'image', url);
+        quill.setSelection(range.index + 1);
+      }
+    });
+
+    const deltaTab = document.getElementById("delta-tab");
+    const htmlTab = document.getElementById("html-tab");
+
+    deltaTab.addEventListener("click", () => {
+      deltaTab.classList.add("active");
+      htmlTab.classList.remove("active");
+      deltaView.classList.add("active");
+      htmlView.classList.remove("active");
+    });
+
+    htmlTab.addEventListener("click", () => {
+      htmlTab.classList.add("active");
+      deltaTab.classList.remove("active");
+      htmlView.classList.add("active");
+      deltaView.classList.remove("active");
+    });
+  </script>
+</body>
+</html>
