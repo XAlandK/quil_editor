@@ -19,7 +19,7 @@ Everything (HTML, CSS, JS) is included in a single HTML file — no external set
 ---
 
 ## 📸 Example Screenshot
-*(You can optionally add a screenshot here, e.g., `screenshot.png`)*
+screenshot.png
 
 ---
 
