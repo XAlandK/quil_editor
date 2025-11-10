@@ -19,7 +19,7 @@ Everything (HTML, CSS, JS) is included in a single HTML file — no external set
 ---
 
 ## 📸 Example Screenshot
-screenshot.png
+![Quill Editor Screenshot](./screenshot.png)
 
 ---
 
